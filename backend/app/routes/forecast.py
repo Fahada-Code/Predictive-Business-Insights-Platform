@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from app.utils.forecasting import generate_forecast, normalize_columns
 import os
 import io
@@ -86,3 +87,64 @@ async def get_forecast(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forecasting error: {str(e)}")
+
+@router.post("/report", tags=["Forecasting"])
+async def get_forecast_report(
+    file: UploadFile = File(...),
+    days: int = Query(30, description="Number of days to forecast"),
+    seasonality_mode: str = Query('additive', enum=['additive', 'multiplicative']),
+    growth: str = Query('linear', enum=['linear', 'flat']),
+    daily_seasonality: bool = False,
+    weekly_seasonality: bool = False,
+    yearly_seasonality: bool = False
+):
+    """
+    Generates a PDF report for the forecast.
+    """
+    # 1. Save upload to temp file
+    os.makedirs("data", exist_ok=True)
+    file_location = os.path.join("data", file.filename)
+    with open(file_location, "wb") as f:
+        f.write(await file.read())
+
+    # 2. Read DataFrame and normalize
+    try:
+        df = pd.read_csv(file_location)
+        df = normalize_columns(df)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid CSV file.")
+
+    # 3. Generate Analysis
+    try:
+        analysis_result = generate_forecast(
+            file_path=df, 
+            days=days,
+            seasonality_mode=seasonality_mode,
+            growth=growth,
+            daily_seasonality=daily_seasonality,
+            weekly_seasonality=weekly_seasonality,
+            yearly_seasonality=yearly_seasonality
+        )
+        
+        # 4. Generate PDF
+        from app.utils.reporting import generate_pdf_report
+        pdf_buffer = generate_pdf_report(
+            forecast_df=analysis_result["forecast"],
+            metrics=analysis_result["metrics"],
+            insights=analysis_result["insights"],
+            anomalies=analysis_result["anomalies"]
+        )
+        
+        # 5. Return as Download
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=forecast_report.pdf"}
+        )
+
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reporting error: {str(e)}")

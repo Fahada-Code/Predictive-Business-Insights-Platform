@@ -120,17 +120,17 @@ function App() {
 
   const handleDownload = async () => {
     if (!file) return;
-    
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       setLoading(true);
       const response = await axios.post(`http://127.0.0.1:8000/report?days=${days}&seasonality_mode=${seasonalityMode}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'blob', // Important for PDF download
       });
-      
+
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -139,7 +139,7 @@ function App() {
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
-      
+
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -183,11 +183,11 @@ function App() {
             <button type="submit" disabled={loading}>
               {loading ? 'Processing...' : 'Run Forecast & Analysis'}
             </button>
-            
+
             {forecastData.length > 0 && (
-                <button type="button" onClick={handleDownload} disabled={loading} style={{ backgroundColor: '#28a745' }}>
-                  Download PDF Report
-                </button>
+              <button type="button" onClick={handleDownload} disabled={loading} style={{ backgroundColor: '#28a745' }}>
+                Download PDF Report
+              </button>
             )}
           </div>
         </form>
@@ -242,15 +242,55 @@ function App() {
                   Recharts doesn't handle "band" easily without custom shapes or stacked areas.
                   We'll just plot lines for now for simplicity or use Area for the whole range if data is structured right.
               */}
-              <Area type="monotone" dataKey="yhat_upper" stroke="none" fill="#82ca9d" fillOpacity={0.2} />
-              {/* Note: Correct area band requires advanced SVG w/ rechart. Simplified here with just lines */}
+              <Area
+                type="monotone"
+                dataKey="yhat_upper"
+                stroke="none"
+                fill="#82ca9d"
+                fillOpacity={0.2}
+                isAnimationActive={true}
+                animationDuration={500}
+              />
 
-              <Line type="monotone" dataKey="yhat" stroke="#8884d8" name="Forecast" dot={false} strokeWidth={2} />
-              <Line type="monotone" dataKey="yhat_upper" stroke="#82ca9d" name="Upper/Lower Bound" strokeDasharray="3 3" dot={false} />
-              <Line type="monotone" dataKey="yhat_lower" stroke="#82ca9d" name="" strokeDasharray="3 3" dot={false} />
+              <Line
+                type="monotone"
+                dataKey="yhat"
+                stroke="#8884d8"
+                name="Forecast"
+                dot={false}
+                strokeWidth={2}
+                isAnimationActive={true}
+                animationDuration={500}
+              />
+              <Line
+                type="monotone"
+                dataKey="yhat_upper"
+                stroke="#82ca9d"
+                name="Upper/Lower Bound"
+                strokeDasharray="3 3"
+                dot={false}
+                isAnimationActive={true}
+                animationDuration={500}
+              />
+              <Line
+                type="monotone"
+                dataKey="yhat_lower"
+                stroke="#82ca9d"
+                name=""
+                strokeDasharray="3 3"
+                dot={false}
+                isAnimationActive={true}
+                animationDuration={500}
+              />
 
-              {/* Anomalies as Scatter points */}
-              <Scatter dataKey="anomalyValue" name="Anomaly" fill="red" shape="circle" />
+              <Scatter
+                dataKey="anomalyValue"
+                name="Anomaly"
+                fill="red"
+                shape="circle"
+                isAnimationActive={true}
+                animationDuration={500}
+              />
 
               <Brush dataKey="ds" height={30} stroke="#8884d8" />
             </ComposedChart>
