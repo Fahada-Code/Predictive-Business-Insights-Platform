@@ -1,34 +1,63 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from app.utils.forecasting import generate_forecast
 import os
-import pandas as pd
+import shutil
+from typing import Optional
 
 router = APIRouter()
 
-# Path to the sample data - assuming relative path from where main.py runs
-# Adjust this path based on where you run uvicorn from. 
-# If running from 'backend', it is 'data/sample_data.csv'
-DATA_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sample_data.txt")
+# Data directory path
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
-@router.get("/forecast", tags=["Forecasting"])
-async def get_forecast(days: int = Query(30, description="Number of days to forecast")):
+@router.post("/forecast", tags=["Forecasting"])
+async def get_forecast(
+    file: UploadFile = File(...),
+    days: int = Query(30, description="Number of days to forecast"),
+    seasonality_mode: str = Query('additive', enum=['additive', 'multiplicative']),
+    growth: str = Query('linear', enum=['linear', 'flat']), # 'logistic' requires saturation columns, sticking to simpler ones for now unless requested
+    daily_seasonality: bool = False,
+    weekly_seasonality: bool = False,
+    yearly_seasonality: bool = False
+):
     """
-    Generate a forecast using the Prophet model based on local CSV data.
+    Generate a forecast using the Prophet model based on uploaded CSV data.
     """
-    if not os.path.exists(DATA_FILE_PATH):
-        raise HTTPException(status_code=404, detail="Data file not found. Please ensure 'data/sample_data.csv' exists.")
+    if not file.filename.endswith('.csv') and not file.filename.endswith('.txt'):
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a CSV file.")
+
+    # Save the uploaded file
+    file_location = os.path.join(DATA_DIR, f"uploaded_{file.filename}")
+    try:
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
     try:
         # Generate forecast
-        forecast_df = generate_forecast(DATA_FILE_PATH, days=days)
+        forecast_df = generate_forecast(
+            file_path=file_location,
+            days=days,
+            seasonality_mode=seasonality_mode,
+            growth=growth,
+            daily_seasonality=daily_seasonality,
+            weekly_seasonality=weekly_seasonality,
+            yearly_seasonality=yearly_seasonality
+        )
         
-        # Convert to dict for JSON response (oriented records usually easiest for frontend)
-        # However, for pure timeseries, list of dicts is standard
+        # Return results
         result = forecast_df.tail(days).to_dict(orient="records")
         
         return {
-            "messsage": f"Forecast generated for next {days} days",
+            "message": f"Forecast generated for next {days} days",
+            "parameters": {
+                "seasonality_mode": seasonality_mode,
+                "growth": growth,
+            },
             "data": result
         }
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Forecasting error: {str(e)}")
