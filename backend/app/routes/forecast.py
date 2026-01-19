@@ -62,13 +62,10 @@ async def get_forecast(
         forecast_df = analysis_result["forecast"]
         anomalies_df = analysis_result["anomalies"]
         metrics = analysis_result["metrics"]
-        insights = analysis_result["insights"]
+        insights_data = analysis_result["insights"] # Structured dict
         
         # Prepare result for JSON response
-        # Full forecast series (History + Future)
         forecast_data = forecast_df.to_dict(orient="records")
-        
-        # Anomalies list
         anomalies_data = anomalies_df.to_dict(orient="records")
         
         return {
@@ -80,8 +77,9 @@ async def get_forecast(
             },
             "metrics": metrics,
             "anomalies": anomalies_data,
-            "insights": insights,
-            "data": forecast_data  # Returning full data now, not just tail
+            "insights": insights_data.get("insights", []),
+            "recommendations": insights_data.get("recommendations", []),
+            "data": forecast_data
         }
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))

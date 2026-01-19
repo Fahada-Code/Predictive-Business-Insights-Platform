@@ -23,6 +23,7 @@ interface AnomalyPoint {
   y: number;
   yhat: number;
   severity: number;
+  severity_level: 'High' | 'Medium' | 'Low';
 }
 
 interface Metrics {
@@ -40,6 +41,7 @@ function App() {
   const [anomalies, setAnomalies] = useState<AnomalyPoint[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [insights, setInsights] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,7 @@ function App() {
       setAnomalies(response.data.anomalies);
       setMetrics(response.data.metrics);
       setInsights(response.data.insights || []);
+      setRecommendations(response.data.recommendations || []);
 
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail
@@ -179,7 +182,9 @@ function App() {
 
         {metrics && <MetricsCards key="metrics" metrics={metrics} />}
 
-        {insights.length > 0 && <InsightsList key="insights" insights={insights} />}
+        {(insights.length > 0 || recommendations.length > 0) && (
+          <InsightsList key="insights" insights={insights} recommendations={recommendations} />
+        )}
 
         {forecastData.length > 0 && (
           <motion.div

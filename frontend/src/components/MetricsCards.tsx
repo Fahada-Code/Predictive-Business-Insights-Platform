@@ -9,11 +9,28 @@ interface Metrics {
 
 export function MetricsCards({ metrics }: { metrics: Metrics }) {
     const confidence = (100 - metrics.MAPE).toFixed(1);
+    const confidenceScore = parseFloat(confidence);
 
     const cards = [
-        { label: "Model Confidence", value: `${confidence}%`, icon: <TrendingUp size={24} color="#0ea5e9" /> },
-        { label: "Review Error (MAPE)", value: `${metrics.MAPE.toFixed(1)}%`, icon: <Activity size={24} color="#2563eb" /> },
-        { label: "Root Mean Sq Error", value: metrics.RMSE.toFixed(2), icon: <AlertTriangle size={24} color="#0284c7" /> },
+        {
+            label: "Model Confidence",
+            value: `${confidence}%`,
+            caption: confidenceScore > 85 ? "Optimal predictive reliability" : "Review data for variance",
+            icon: <TrendingUp size={24} color="#0ea5e9" />,
+            color: confidenceScore > 85 ? "var(--accent-primary)" : "#f59e0b"
+        },
+        {
+            label: "Forecast Error (MAPE)",
+            value: `${metrics.MAPE.toFixed(1)}%`,
+            caption: metrics.MAPE < 15 ? "Low relative variance" : "High historical noise",
+            icon: <Activity size={24} color="#2563eb" />
+        },
+        {
+            label: "RMSE Intensity",
+            value: metrics.RMSE.toFixed(2),
+            caption: "Absolute deviation magnitude",
+            icon: <AlertTriangle size={24} color="#0284c7" />
+        },
     ];
 
     return (
@@ -30,7 +47,8 @@ export function MetricsCards({ metrics }: { metrics: Metrics }) {
                         <span>{card.label}</span>
                         {card.icon}
                     </div>
-                    <div className="metric-value">{card.value}</div>
+                    <div className="metric-value" style={{ color: card.color }}>{card.value}</div>
+                    <div className="metric-caption">{card.caption}</div>
                 </motion.div>
             ))}
         </div>

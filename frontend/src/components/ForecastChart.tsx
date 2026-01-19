@@ -25,6 +25,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
         return {
             ...point,
             anomalyValue: anomaly ? anomaly.y : null,
+            severity_level: anomaly ? anomaly.severity_level : null,
         };
     });
 
@@ -58,21 +59,22 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             labelFormatter={(label) => new Date(label).toDateString()}
                             formatter={(value: any) => typeof value === 'number' ? [value.toFixed(2), ''] : ['', '']}
                         />
-                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                        <Legend verticalAlign="top" height={36} wrapperStyle={{ paddingTop: '10px' }} />
 
                         <Area
                             type="monotone"
                             dataKey="yhat_upper"
                             stroke="none"
-                            fill="#3b82f6"
-                            fillOpacity={0.1}
+                            fill="#94a3b8"
+                            fillOpacity={0.15}
+                            name="Confidence Interval"
                         />
 
                         <Line
                             type="monotone"
                             dataKey="yhat"
                             stroke="#0ea5e9"
-                            name="Forecast"
+                            name="Primary Forecast"
                             dot={false}
                             strokeWidth={3}
                             activeDot={{ r: 8 }}
@@ -81,17 +83,17 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <Line
                             type="monotone"
                             dataKey="yhat_upper"
-                            stroke="#3b82f6"
-                            name="Confidence Bounds"
+                            stroke="#94a3b8"
+                            name="Upper/Lower Bound"
                             strokeDasharray="5 5"
                             dot={false}
                             strokeWidth={1}
+                            legendType='none'
                         />
                         <Line
                             type="monotone"
                             dataKey="yhat_lower"
-                            stroke="#3b82f6"
-                            name=""
+                            stroke="#94a3b8"
                             strokeDasharray="5 5"
                             dot={false}
                             strokeWidth={1}
@@ -100,9 +102,13 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
 
                         <Scatter
                             dataKey="anomalyValue"
-                            name="Anomaly"
+                            name="Critical Anomaly"
                             fill="#ef4444"
-                            shape="circle"
+                            shape={(props: any) => {
+                                const { cx, cy, payload } = props;
+                                const size = payload.severity_level === 'High' ? 10 : payload.severity_level === 'Medium' ? 7 : 4;
+                                return <circle cx={cx} cy={cy} r={size} fill="#ef4444" stroke="#ffffff" strokeWidth={2} />;
+                            }}
                         />
 
                         <Brush dataKey="ds" height={30} stroke="#3b82f6" fill="#f8fafc" />

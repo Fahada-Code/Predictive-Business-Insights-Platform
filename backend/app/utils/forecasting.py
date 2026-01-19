@@ -92,6 +92,7 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float
 def detect_anomalies(forecast: pd.DataFrame, actuals: pd.DataFrame) -> pd.DataFrame:
     """
     Identify anomalies where actual values fall outside the uncertainty intervals.
+    Categorizes them by High, Medium, and Low severity.
     """
     # Merge forecast with actuals on 'ds'
     merged = pd.merge(actuals, forecast[['ds', 'yhat_lower', 'yhat_upper', 'yhat']], on='ds', how='inner')
@@ -102,10 +103,22 @@ def detect_anomalies(forecast: pd.DataFrame, actuals: pd.DataFrame) -> pd.DataFr
     # Return only the rows that are anomalies
     anomalies = merged[merged['is_anomaly']].copy()
     
-    # Calculate importance/severity
+    if anomalies.empty:
+        return pd.DataFrame(columns=['ds', 'y', 'yhat', 'yhat_lower', 'yhat_upper', 'severity', 'severity_level'])
+
+    # Calculate severity as percentage deviation from yhat
+    anomalies['severity_pct'] = (np.abs(anomalies['y'] - anomalies['yhat']) / anomalies['yhat']) * 100
+    
+    # Classify severity levels
+    def classify_severity(pct):
+        if pct > 20: return 'High'
+        if pct > 10: return 'Medium'
+        return 'Low'
+    
+    anomalies['severity_level'] = anomalies['severity_pct'].apply(classify_severity)
     anomalies['severity'] = np.abs(anomalies['y'] - anomalies['yhat'])
     
-    return anomalies[['ds', 'y', 'yhat', 'yhat_lower', 'yhat_upper', 'severity']]
+    return anomalies[['ds', 'y', 'yhat', 'yhat_lower', 'yhat_upper', 'severity', 'severity_level']]
 
 def generate_forecast(
     file_path: str | pd.DataFrame,
@@ -195,51 +208,64 @@ def generate_forecast(
         "model": m
     }
 
-def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: pd.DataFrame) -> List[str]:
+def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: pd.DataFrame) -> Dict[str, List[str]]:
     """
-    Generate natural language insights based on forecast data.
+    Generate natural language insights and recommendations based on forecast data.
     """
     insights = []
+    recommendations = []
     
     # 1. Trend Analysis
     current_val = history['y'].iloc[-1]
     future_val = forecast['yhat'].iloc[-1]
     trend_pct = ((future_val - current_val) / current_val) * 100
     
-    # Determine the overall direction
     direction = "growth" if trend_pct > 0 else "decline"
     intensity = "Significant" if abs(trend_pct) > 10 else "Moderate" if abs(trend_pct) > 3 else "Minimal"
     
-    insights.append(f"📊 **{intensity} {direction.capitalize()}**: Expect a {abs(trend_pct):.1f}% {direction} in values over the next forecast cycle.")
+    insights.append(f"<b>{intensity} {direction.capitalize()}</b>: Expect a {abs(trend_pct):.1f}% {direction} in values over the next forecast cycle.")
     
+    # Add trend-based recommendations
+    if direction == "growth":
+        if abs(trend_pct) > 10:
+            recommendations.append("<b>Scale Operations</b>: Increase capacity and inventory to meet projected high demand.")
+        else:
+            recommendations.append("<b>Monitor Steady Growth</b>: Continue current growth strategies with regular performance checks.")
+    else:
+        recommendations.append("<b>Cost Optimization</b>: Identify potential operational efficiencies to offset the projected decline.")
+
     # 2. Key Milestones (Peaks and Troughs)
     future_forecast = forecast[forecast['ds'] > history['ds'].max()]
     if not future_forecast.empty:
         peak_idx = future_forecast['yhat'].idxmax()
-        trough_idx = future_forecast['yhat'].idxmin()
-        
         peak_time = future_forecast.loc[peak_idx, 'ds'].strftime('%Y-%m-%d')
         peak_val = future_forecast.loc[peak_idx, 'yhat']
         
-        insights.append(f"🚀 **Forecast Peak**: The model projects a high of **{peak_val:.2f}** around **{peak_time}**.")
+        insights.append(f"<b>Forecast Peak</b>: The model projects a high of <b>{peak_val:.2f}</b> around <b>{peak_time}</b>.")
+        recommendations.append(f"<b>Peak Readiness</b>: Plan marketing or maintenance activities around the <b>{peak_time}</b> peak.")
 
     # 3. Anomaly & Volatility Summary
     if not anomalies.empty:
-        total_anomalies = len(anomalies)
-        recent_cutoff = history['ds'].max() - pd.Timedelta(days=30)
-        recent_anomalies = anomalies[anomalies['ds'] > recent_cutoff]
+        high_severity = anomalies[anomalies['severity_level'] == 'High']
+        if not high_severity.empty:
+            insights.append(f"<b>Critical Volatility</b>: Detected {len(high_severity)} <b>High Severity</b> anomalies requiring immediate review.")
+            recommendations.append("<b>Risk Mitigation</b>: Audit the high-severity data points to identify root causes and prevent recurrence.")
         
-        if not recent_anomalies.empty:
-            insights.append(f"⚠️ **Recent Volatility**: Detected **{len(recent_anomalies)}** unexpected fluctuations in the last 30 days, suggesting higher short-term risk.")
-        else:
-            insights.append(f"🛡️ **Historical Stability**: Despite **{total_anomalies}** lifetime anomalies, recent data shows consistent patterns.")
-            
+        total_anomalies = len(anomalies)
+        insights.append(f"<b>Statistical Stability</b>: Over {total_anomalies} historical anomalies identified, helping refine model sensitivity.")
+    else:
+        insights.append("<b>Operational Stability</b>: No significant anomalies detected in recent historical data.")
+
     # 4. Confidence Interval
     last_point = forecast.iloc[-1]
     spread = (last_point['yhat_upper'] - last_point['yhat_lower']) / last_point['yhat'] * 100
     if spread < 15:
-        insights.append("✅ **High Confidence**: The model shows high convergence with a narrow prediction interval.")
+        insights.append("<b>High Confidence</b>: The model shows high convergence with a narrow prediction interval.")
     else:
-        insights.append("🔍 **Variable Forecast**: Noted a wider uncertainty margin, suggesting potential external market influence.")
+        insights.append("<b>Variable Forecast</b>: Noted a wider uncertainty margin, suggesting potential external market influence.")
+        recommendations.append("<b>Data Refinement</b>: Consider adding additional context columns (holidays, promos) to reduce forecast variance.")
     
-    return insights
+    return {
+        "insights": insights,
+        "recommendations": recommendations
+    }
