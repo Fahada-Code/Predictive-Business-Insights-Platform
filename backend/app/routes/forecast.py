@@ -17,9 +17,9 @@ async def get_forecast(
     days: int = Query(30, description="Number of days to forecast"),
     seasonality_mode: str = Query('additive', enum=['additive', 'multiplicative']),
     growth: str = Query('linear', enum=['linear', 'flat']),
-    daily_seasonality: bool = False,
-    weekly_seasonality: bool = False,
-    yearly_seasonality: bool = False
+    daily_seasonality: str = 'auto',
+    weekly_seasonality: str = 'auto',
+    yearly_seasonality: str = 'auto'
 ):
     """
     Generate a forecast using the Prophet model based on uploaded CSV data.
@@ -94,9 +94,9 @@ async def get_forecast_report(
     days: int = Query(30, description="Number of days to forecast"),
     seasonality_mode: str = Query('additive', enum=['additive', 'multiplicative']),
     growth: str = Query('linear', enum=['linear', 'flat']),
-    daily_seasonality: bool = False,
-    weekly_seasonality: bool = False,
-    yearly_seasonality: bool = False
+    daily_seasonality: str = 'auto',
+    weekly_seasonality: str = 'auto',
+    yearly_seasonality: str = 'auto'
 ):
     """
     Generates a PDF report for the forecast.

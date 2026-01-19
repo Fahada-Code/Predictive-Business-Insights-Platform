@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react';
-import { Upload, Settings, Calendar } from 'lucide-react';
+import { Upload, Settings, Calendar, Info, Play } from 'lucide-react';
+import { getSampleFile } from '../utils/sampleData';
 
 interface ControlsProps {
     file: File | null;
@@ -10,6 +11,7 @@ interface ControlsProps {
     onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
     onDaysChange: (val: number) => void;
     onSeasonalityChange: (val: string) => void;
+    onFileChangeRaw: (file: File) => void;
     onSubmit: (e: React.FormEvent) => void;
     onDownload: () => void;
 }
@@ -23,6 +25,7 @@ export function Controls({
     onFileChange,
     onDaysChange,
     onSeasonalityChange,
+    onFileChangeRaw,
     onSubmit,
     onDownload
 }: ControlsProps) {
@@ -30,7 +33,16 @@ export function Controls({
         <div className="glass-panel controls-panel">
             <form onSubmit={onSubmit} className="controls-form">
                 <div className="control-group">
-                    <label className="label-icon"><Upload size={18} /> Upload Data</label>
+                    <div className="label-with-tooltip">
+                        <label className="label-icon"><Upload size={18} /> Upload Data</label>
+                        <button
+                            type="button"
+                            className="btn-text-link"
+                            onClick={() => onFileChangeRaw(getSampleFile())}
+                        >
+                            <Play size={12} /> Try Sample Data
+                        </button>
+                    </div>
                     <div className="file-input-wrapper">
                         <input type="file" accept=".csv,.txt" onChange={onFileChange} id="file-upload" className="file-input" />
                         <label htmlFor="file-upload" className="file-label">
@@ -40,7 +52,13 @@ export function Controls({
                 </div>
 
                 <div className="control-group">
-                    <label className="label-icon"><Calendar size={18} /> Horizon (Days)</label>
+                    <div className="label-with-tooltip">
+                        <label className="label-icon"><Calendar size={18} /> Horizon (Days)</label>
+                        <div className="tooltip-wrapper">
+                            <Info size={14} className="info-icon" />
+                            <span className="tooltip-text">How many days into the future to predict.</span>
+                        </div>
+                    </div>
                     <input
                         type="number"
                         value={days}
@@ -52,7 +70,16 @@ export function Controls({
                 </div>
 
                 <div className="control-group">
-                    <label className="label-icon"><Settings size={18} /> Seasonality</label>
+                    <div className="label-with-tooltip">
+                        <label className="label-icon"><Settings size={18} /> Seasonality</label>
+                        <div className="tooltip-wrapper">
+                            <Info size={14} className="info-icon" />
+                            <span className="tooltip-text">
+                                <strong>Additive:</strong> Constant swings.<br />
+                                <strong>Multiplicative:</strong> Swings grow with the trend (Pro tip: use for stocks!)
+                            </span>
+                        </div>
+                    </div>
                     <select
                         value={seasonalityMode}
                         onChange={(e) => onSeasonalityChange(e.target.value)}

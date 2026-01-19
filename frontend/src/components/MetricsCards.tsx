@@ -11,9 +11,9 @@ export function MetricsCards({ metrics }: { metrics: Metrics }) {
     const confidence = (100 - metrics.MAPE).toFixed(1);
 
     const cards = [
-        { label: "Model Confidence", value: `${confidence}%`, icon: <TrendingUp size={24} color="#4ade80" /> },
-        { label: "Review Error (MAPE)", value: `${metrics.MAPE}%`, icon: <Activity size={24} color="#60a5fa" /> },
-        { label: "Root Mean Sq Error", value: metrics.RMSE.toFixed(2), icon: <AlertTriangle size={24} color="#facc15" /> },
+        { label: "Model Confidence", value: `${confidence}%`, icon: <TrendingUp size={24} color="#0ea5e9" /> },
+        { label: "Review Error (MAPE)", value: `${metrics.MAPE.toFixed(1)}%`, icon: <Activity size={24} color="#2563eb" /> },
+        { label: "Root Mean Sq Error", value: metrics.RMSE.toFixed(2), icon: <AlertTriangle size={24} color="#0284c7" /> },
     ];
 
     return (

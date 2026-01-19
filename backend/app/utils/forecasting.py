@@ -112,9 +112,9 @@ def generate_forecast(
     days: int = 30,
     seasonality_mode: str = 'additive',
     growth: str = 'linear',
-    daily_seasonality: bool = False,
-    weekly_seasonality: bool = False,
-    yearly_seasonality: bool = False,
+    daily_seasonality: str = 'auto',
+    weekly_seasonality: str = 'auto',
+    yearly_seasonality: str = 'auto',
     holidays: Optional[pd.DataFrame] = None
 ) -> Dict:
     """

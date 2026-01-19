@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, BarChart2 } from 'lucide-react';
 
 import './App.css';
 import { Controls } from './components/Controls';
@@ -48,6 +48,10 @@ function App() {
     if (e.target.files) {
       setFile(e.target.files[0]);
     }
+  };
+
+  const handleFileChangeRaw = (newFile: File) => {
+    setFile(newFile);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -116,6 +120,21 @@ function App() {
     }
   };
 
+  const EmptyState = () => (
+    <motion.div
+      className="glass-panel empty-state"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+    >
+      <div className="empty-state-icon">
+        <BarChart2 size={48} />
+      </div>
+      <h2>Ready for Insights?</h2>
+      <p>Upload a CSV file or use the sample data to visualize future business trends and detect anomalies.</p>
+    </motion.div>
+  );
+
   return (
     <div className="app-container">
       <motion.div
@@ -138,6 +157,7 @@ function App() {
         onFileChange={handleFileChange}
         onDaysChange={setDays}
         onSeasonalityChange={setSeasonalityMode}
+        onFileChangeRaw={handleFileChangeRaw}
         onSubmit={handleSubmit}
         onDownload={handleDownload}
       />
@@ -152,19 +172,26 @@ function App() {
         </motion.div>
       )}
 
-      {metrics && <MetricsCards metrics={metrics} />}
+      <AnimatePresence mode="wait">
+        {forecastData.length === 0 && !loading && !error && (
+          <EmptyState key="empty" />
+        )}
 
-      {insights.length > 0 && <InsightsList insights={insights} />}
+        {metrics && <MetricsCards key="metrics" metrics={metrics} />}
 
-      {forecastData.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <ForecastChart data={forecastData} anomalies={anomalies} />
-        </motion.div>
-      )}
+        {insights.length > 0 && <InsightsList key="insights" insights={insights} />}
+
+        {forecastData.length > 0 && (
+          <motion.div
+            key="chart"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <ForecastChart data={forecastData} anomalies={anomalies} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

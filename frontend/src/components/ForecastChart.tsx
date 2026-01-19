@@ -42,20 +42,21 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                     <ComposedChart data={chartData}>
                         <defs>
                             <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4} />
+                                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                         <XAxis
                             dataKey="ds"
                             tickFormatter={(tick) => new Date(tick).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            stroke="#ccc"
+                            stroke="#64748b"
                         />
-                        <YAxis stroke="#ccc" />
+                        <YAxis stroke="#64748b" tickFormatter={(val) => typeof val === 'number' ? val.toLocaleString(undefined, { maximumFractionDigits: 1 }) : val} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: '#fff' }}
+                            contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#0f172a', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                             labelFormatter={(label) => new Date(label).toDateString()}
+                            formatter={(value: any) => typeof value === 'number' ? [value.toFixed(2), ''] : ['', '']}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
@@ -63,14 +64,14 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             type="monotone"
                             dataKey="yhat_upper"
                             stroke="none"
-                            fill="#82ca9d"
+                            fill="#3b82f6"
                             fillOpacity={0.1}
                         />
 
                         <Line
                             type="monotone"
                             dataKey="yhat"
-                            stroke="#8884d8"
+                            stroke="#0ea5e9"
                             name="Forecast"
                             dot={false}
                             strokeWidth={3}
@@ -80,7 +81,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <Line
                             type="monotone"
                             dataKey="yhat_upper"
-                            stroke="#82ca9d"
+                            stroke="#3b82f6"
                             name="Confidence Bounds"
                             strokeDasharray="5 5"
                             dot={false}
@@ -89,7 +90,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <Line
                             type="monotone"
                             dataKey="yhat_lower"
-                            stroke="#82ca9d"
+                            stroke="#3b82f6"
                             name=""
                             strokeDasharray="5 5"
                             dot={false}
@@ -104,7 +105,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             shape="circle"
                         />
 
-                        <Brush dataKey="ds" height={30} stroke="#8884d8" fill="#1f2937" />
+                        <Brush dataKey="ds" height={30} stroke="#3b82f6" fill="#f8fafc" />
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
