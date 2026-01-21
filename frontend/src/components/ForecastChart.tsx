@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     ComposedChart,
     Line,
@@ -40,13 +41,17 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
         };
     });
 
-    const anomalySeries = chartData
-        .filter(d => d.anomalyValue !== null)
-        .map(d => ({
-            timestamp: d.timestamp,
-            anomalyValue: d.anomalyValue,
-            severity_level: d.severity_level
-        }));
+    // 2. Track brush range for dynamic updates
+    const [brushRange, setBrushRange] = useState<{ startIndex: number, endIndex: number }>({
+        startIndex: 0,
+        endIndex: chartData.length - 1
+    });
+
+    // 3. Calculate dynamic domain based on brush selection
+    const visibleData = chartData.slice(brushRange.startIndex, brushRange.endIndex + 1);
+    const xDomain = visibleData.length > 0
+        ? [visibleData[0].timestamp, visibleData[visibleData.length - 1].timestamp]
+        : ['dataMin' as const, 'dataMax' as const];
 
     return (
         <div className="glass-panel chart-panel">
@@ -70,7 +75,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <XAxis
                             dataKey="timestamp"
                             type="number"
-                            domain={['dataMin', 'dataMax']}
+                            domain={xDomain}
                             tickFormatter={(tick) => new Date(tick).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             stroke="#64748b"
                             minTickGap={40}
@@ -141,24 +146,24 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         />
 
                         <Scatter
-                            data={anomalySeries}
                             dataKey="anomalyValue"
                             name="Critical Anomaly"
                             fill="#ef4444"
+                            legendType="circle"
                             shape={(props: any) => {
                                 const { cx, cy, payload } = props;
-                                if (typeof cx !== 'number' || typeof cy !== 'number') return <path d="" />;
+                                if (!cx || !cy || payload.anomalyValue === null) return <path d="" />;
 
                                 const severity = payload.severity_level;
                                 let fill = "#ef4444"; // High
-                                let size = 8;
+                                let size = 10;
 
                                 if (severity === 'Medium') {
                                     fill = "#f97316"; // Medium
-                                    size = 6;
+                                    size = 7;
                                 } else if (severity === 'Low') {
                                     fill = "#f59e0b"; // Low
-                                    size = 4;
+                                    size = 5;
                                 }
 
                                 return (
@@ -174,7 +179,22 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             }}
                         />
 
-                        <Brush dataKey="timestamp" height={30} stroke="#cbd5e1" fill="#f8fafc" tickFormatter={(t) => new Date(t).getFullYear().toString()} />
+                        <Brush
+                            dataKey="timestamp"
+                            height={30}
+                            stroke="#3b82f6"
+                            fill="#f8fafc"
+                            onChange={(range: any) => {
+                                if (range && range.startIndex !== undefined && range.endIndex !== undefined) {
+                                    setBrushRange({
+                                        startIndex: range.startIndex,
+                                        endIndex: range.endIndex
+                                    });
+                                }
+                            }}
+                            startIndex={brushRange.startIndex}
+                            endIndex={brushRange.endIndex}
+                        />
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
